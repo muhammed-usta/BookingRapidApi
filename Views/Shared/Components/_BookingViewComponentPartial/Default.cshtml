@@ -1,0 +1,289 @@
+﻿@* _BookingViewComponentPartial *@
+<section class="ftco-booking">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <form id="hotelSearchForm" class="booking-form">
+                    <div class="row">
+                        <div class="col-md-3 d-flex">
+                            <div class="form-group p-4 align-self-stretch d-flex align-items-end">
+                                <div class="wrap">
+                                    <label for="#">City</label>
+                                    <input type="text" id="cityName" name="cityName" class="form-control" placeholder="City">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex">
+                            <div class="form-group p-4 align-self-stretch d-flex align-items-end">
+                                <div class="wrap">
+                                    <label for="#">Check-in Date</label>
+                                    <input type="text" name="CheckInDate" id="checkInDate" class="form-control checkin_date" placeholder="Check-in date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex">
+                            <div class="form-group p-4 align-self-stretch d-flex align-items-end">
+                                <div class="wrap">
+                                    <label for="#">Check-out Date</label>
+                                    <input type="text" name="CheckOutDate" id="checkOutDate" class="form-control checkout_date" placeholder="Check-out date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md d-flex">
+                            <div class="form-group p-4 align-self-stretch d-flex align-items-end">
+                                <div class="wrap">
+                                    <label for="#">Room</label>
+                                    <div class="form-field">
+                                        <div class="select-wrap">
+                                            <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                                            <select name="roomCount" id="room" class="form-control">
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md d-flex">
+                            <div class="form-group p-4 align-self-stretch d-flex align-items-end">
+                                <div class="wrap">
+                                    <label for="#">Customer</label>
+                                    <div class="form-field">
+                                        <div class="select-wrap">
+                                            <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+                                            <select name="personCount" id="person" class="form-control">
+                                                <option value="1">1 Adult</option>
+                                                <option value="2">2 Adult</option>
+                                                <option value="3">3 Adult</option>
+                                                <option value="4">4 Adult</option>
+                                                <option value="5">5 Adult</option>
+                                                <option value="6">6 Adult</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md d-flex" style="padding:30px;">
+                            <div class="form-group d-flex align-self-stretch">
+                                <button type="submit" id="getHotelsButton" class="btn btn-primary py-3 px-4 align-self-stretch">Check Availability</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Results Area Wrapper -->
+<div class="container mt-5">
+    <div id="resultAreaWrapper">
+        <p id="statusMessage" role="alert"></p> <!-- Added role="alert" for accessibility -->
+        <div id="hotelListArea">
+            <!-- Results will load here -->
+        </div>
+    </div>
+</div>
+
+<!-- SweetAlert CSS ve JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<head>
+    <style>
+        .hotel-photo-thumbnail {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<script>
+    $(function () {
+        
+        function formatDateToISO(dateString) {
+            if (!dateString) return null;
+            const [month, day, year] = dateString.split('/');
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`; 
+        }
+
+        // Use form submission event
+        $("#hotelSearchForm").submit(function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Clear previous results and status
+            $("#statusMessage").text("").removeClass('alert alert-danger alert-info alert-success alert-warning');
+            $("#hotelListArea").empty();
+
+            // Get values
+            let cityName = $("#cityName").val().trim();
+            let arrivalDateInput = $("input[name='CheckInDate']").val();
+            let departureDateInput = $("input[name='CheckOutDate']").val();
+            let arrivalDate = formatDateToISO(arrivalDateInput);
+            let departureDate = formatDateToISO(departureDateInput);
+            let roomCount = $("#room").val();
+            let personCount = $("#person").val();
+
+            // Basic frontend validation
+            if (!cityName || !arrivalDate || !departureDate || !roomCount || !personCount || parseInt(roomCount) < 1 || parseInt(personCount) < 1) {
+                $("#statusMessage")
+                    .text("Please fill in all the booking details correctly.")
+                    .addClass('alert alert-warning');
+                return; // Stop execution
+            }
+
+            // Validate date format (MM/dd/yyyy)
+            if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(arrivalDateInput) || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(departureDateInput)) {
+                $("#statusMessage")
+                    .text("Please enter the dates in MM/dd/yyyy format (for example, 5/20/2025).")
+                    .addClass('alert alert-warning');
+                return;
+            }
+
+            // Date validation (departure >= arrival)
+            if (new Date(departureDate) < new Date(arrivalDate)) {
+                $("#statusMessage")
+                    .text("The check-out date cannot be earlier than the check-in date.")
+                    .addClass('alert alert-warning');
+                return;
+            }
+
+            $("#statusMessage").text("Retrieving information, please wait...").addClass('alert alert-info');
+            $("#getHotelsButton").prop('disabled', true).text('Searching...');
+
+            // First AJAX Call: Get Destination ID
+            $.ajax({
+                url: "/UI/GetId/" + encodeURIComponent(cityName),
+                type: "GET",
+                dataType: "json",
+                success: function (response) {
+                    console.log("GetId response:", response);
+                    const receivedDestId = (typeof response === 'object' && response !== null && response.destinationId) ? response.destinationId : response;
+
+                    if (!receivedDestId || isNaN(parseInt(receivedDestId))) {
+                        console.error("Invalid Dest ID received:", receivedDestId);
+                        $("#statusMessage").text(`${cityName} a valid hotel region ID could not be found. Please check the city name.`).removeClass('alert-info').addClass('alert-danger');
+                        $("#getHotelsButton").prop('disabled', false).text('Check Availability');
+                        return;
+                    }
+
+                    $("#statusMessage").text("The city information has been verified. Searching for hotels...").addClass('alert-info');
+
+                    // Second AJAX Call: Get Hotels
+                    let url = `/UI/GetFilterHotels/${encodeURIComponent(receivedDestId)}/${encodeURIComponent(arrivalDate)}/${encodeURIComponent(departureDate)}/${personCount}/${roomCount}`;
+                    console.log("Generated URL:", url);
+                    console.log("Sent Parameters:", { receivedDestId, arrivalDate, departureDate, personCount, roomCount });
+
+                    $.ajax({
+                        url: url,
+                        type: "GET",
+                        dataType: "json",
+                        success: function (hotelData) {
+                            console.log("Received hotel data:", hotelData);
+
+                            $("#statusMessage").removeClass('alert-info alert-warning alert-danger').addClass('alert-success');
+
+                            if (hotelData && Array.isArray(hotelData) && hotelData.length > 0) {
+                                hotelData.sort((a, b) => {
+                                    const scoreA = (a.property && typeof a.property.reviewScore === 'number') ? a.property.reviewScore : 0;
+                                    const scoreB = (b.property && typeof b.property.reviewScore === 'number') ? b.property.reviewScore : 0;
+                                    return scoreB - scoreA; // Sort descending
+                                });
+
+                                $("#statusMessage").text(`${hotelData.length} hotel found.`);
+                                $("#hotelListArea").empty();
+
+                                let hotelTableHtml = `
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-bordered table-hover">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th scope="col">Hotel Name</th>
+                                                    <th scope="col" class="text-center">Review</th>
+                                                    <th scope="col" class="text-center">Image</th>
+                                                    <th scope="col" class="text-center">Rating</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="align-middle">
+                                `;
+
+                                hotelData.forEach(function (hotel) {
+                                    const property = hotel.property || {};
+                                    const hotelName = property.name || 'İsim Yok';
+                                    const reviewCount = property.reviewCount ?? 'N/A';
+                                    const reviewScore = typeof property.reviewScore === 'number' ? property.reviewScore.toFixed(1) : 'N/A';
+
+                                    let photoHtml = '<span class="text-muted small">Image not found</span>';
+                                    if (property.photoUrls && Array.isArray(property.photoUrls) && property.photoUrls.length > 0 && property.photoUrls[0]) {
+                                        photoHtml = `<img src="${property.photoUrls[0]}" alt="${hotelName} Image" class="hotel-photo-thumbnail">`;
+                                    }
+
+                                    hotelTableHtml += `
+                                        <tr>
+                                            <td>${hotelName}</td>
+                                            <td class="text-center">${reviewCount}</td>
+                                            <td class="text-center">${photoHtml}</td>
+                                            <td class="text-center fw-bold">${reviewScore}</td>
+                                        </tr>
+                                    `;
+                                });
+
+                                hotelTableHtml += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `;
+
+                                $("#hotelListArea").html(hotelTableHtml);
+                            } else {
+                                $("#statusMessage").text("No hotels matching the specified criteria were found.").removeClass('alert-success').addClass('alert-warning');
+                                $("#hotelListArea").html('<div class="alert alert-warning" role="alert">No suitable hotels were found. Please change your criteria and try again!</div>');
+                            }
+                            $("#getHotelsButton").prop('disabled', false).text('Check Availability');
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Otel alma hatası:", status, error, xhr.status, xhr.responseText);
+                            let errorMsg = "A server error occurred while retrieving hotels.";
+                            if (xhr.status === 404) {
+                                errorMsg = "Hotel search service not found (404). URL: " + xhr.responseURL;
+                            } else if (xhr.status === 0) {
+                                errorMsg = "Network error or unable to reach the server.";
+                            } else if (xhr.responseText) {
+                                try {
+                                    const errData = JSON.parse(xhr.responseText);
+                                    errorMsg += ` Detay: ${errData.title || errData.message || xhr.responseText}`;
+                                } catch (e) {
+                                    errorMsg += ` Detay: ${xhr.responseText.substring(0, 200)}...`;
+                                }
+                            } else {
+                                errorMsg += ` (${status}: ${error})`;
+                            }
+                            $("#statusMessage").text(errorMsg).removeClass('alert-info alert-success alert-warning').addClass('alert-danger');
+                            $("#hotelListArea").html(`<div class="alert alert-danger" role="alert"><strong>Hata!</strong> ${errorMsg}</div>`);
+                            $("#getHotelsButton").prop('disabled', false).text('Check Availability');
+                        }
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error retrieving Destination ID:", status, error, xhr.status, xhr.responseText);
+                    let errorMessage = "City ID could not be retrieved.";
+                    if (xhr.status === 404) {
+                        errorMessage = `${cityName} No valid region found or the service is unavailable for the specified location (404).`;
+                    } else if (xhr.status === 0) {
+                        errorMessage = "Network error or unable to connect to the server.";
+                    } else if (xhr.responseText) {
+                        errorMessage += ` Detay: ${xhr.responseText.substring(0, 200)}...`;
+                    } else {
+                        errorMessage += ` (${status}: ${error})`;
+                    }
+                    $("#statusMessage").text(errorMessage).removeClass('alert-info').addClass('alert-danger');
+                    $("#hotelListArea").empty();
+                    $("#getHotelsButton").prop('disabled', false).text('Check Availability');
+                }
+            });
+        });
+    });
+</script>

@@ -1,0 +1,38 @@
+﻿
+@{
+    Layout = null;
+}
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+
+    @await Component.InvokeAsync("_HeadViewComponentPartial")
+   
+<body>
+
+    @await Component.InvokeAsync("_NavbarViewComponentPartial")
+    <section id="home">
+    @await Component.InvokeAsync("_HomeSliderViewComponentPartial")
+    </section>
+    @await Component.InvokeAsync("_BookingViewComponentPartial")
+
+    @await Component.InvokeAsync("_WelcomeViewComponentPartial")
+
+    @await Component.InvokeAsync("_ServicesViewComponentPartial")
+
+    @await Component.InvokeAsync("_StatsViewComponentPartial")
+
+    @await Component.InvokeAsync("_TestimonialViewComponentPartial")
+
+    @await Component.InvokeAsync("_InstaViewComponentPartial")
+
+    @await Component.InvokeAsync("_FooterViewComponentPartial")
+
+    @await Component.InvokeAsync("_ScriptsViewComponentPartial")
+
+  
+
+</body>
+</html>
